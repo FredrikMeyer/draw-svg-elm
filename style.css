@@ -1,0 +1,5 @@
+
+.colorPickerRow {
+    display: flex;
+    flex-direction: row;
+}
