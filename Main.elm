@@ -1,7 +1,5 @@
 module Main exposing (..)
 
---import Collage exposing (..)
-
 import Color exposing (..)
 import Html exposing (Html, div, text)
 import Html.Attributes exposing (..)
@@ -27,24 +25,31 @@ main =
 type alias Model =
     { text : String
     , mousePos : Position
-    , picture : List ( Float, Float )
-    , color : Color
+    , picture : DrawPath
+    , currentColor : Color
     , isDrawing : Bool
     }
 
 
 cWidth =
-    300
+    500
 
 
 cHeight =
-    300
+    500
+
+
+type alias DrawPath =
+    { color : Color
+    , points : List ( Float, Float )
+    }
 
 
 type Msg
     = NewColor Color
     | MousePos Position
     | MouseClicked MouseState
+    | ResetPanel
 
 
 type MouseState
@@ -56,6 +61,21 @@ type Color
     = Black
     | Red
     | Blue
+
+
+init : ( Model, Cmd Msg )
+init =
+    ( { text = "Init "
+      , mousePos = Position 0 0
+      , picture =
+            { color = Black
+            , points = []
+            }
+      , isDrawing = False
+      , currentColor = Black
+      }
+    , Cmd.none
+    )
 
 
 pointToString : ( Float, Float ) -> String
@@ -70,15 +90,15 @@ pointToString p =
         x ++ "," ++ y
 
 
-pointsToSvgLine : Color -> List ( Float, Float ) -> Svg.Svg msg
-pointsToSvgLine c pts =
+pointsToSvgLine : DrawPath -> Svg.Svg msg
+pointsToSvgLine { color, points } =
     let
         x =
-            List.map pointToString pts
+            List.map pointToString points
                 |> String.join " "
 
-        color =
-            case c of
+        polyColor =
+            case color of
                 Red ->
                     "red"
 
@@ -90,8 +110,8 @@ pointsToSvgLine c pts =
     in
         polyline
             [ fill "none"
-            , stroke color
-            , points x
+            , stroke polyColor
+            , Svg.Attributes.points x
             ]
             []
 
@@ -115,10 +135,12 @@ view model =
             toString model.mousePos.y
 
         lineToDraw =
-            pointsToSvgLine model.color model.picture
+            pointsToSvgLine model.picture
     in
         div []
-            [ div [] [ Html.text (model.text ++ " " ++ toString model.isDrawing) ]
+            [ div
+                []
+                [ Html.text (model.text ++ " " ++ toString model.isDrawing) ]
             , div
                 [ Html.Attributes.style
                     [ ( "border", "1px solid black" )
@@ -143,10 +165,11 @@ view model =
                     , lineToDraw
                     ]
                 ]
-            , div
-                [ Html.Attributes.id "colorPickerRow"
+            , colorPicker
+            , Html.button
+                [ onClick ResetPanel
                 ]
-                colorPicker
+                [ Html.text "Clear drawing" ]
             ]
 
 
@@ -157,67 +180,67 @@ offsetPosition =
         (field "offsetY" int)
 
 
-colorPicker : List (Html Msg)
+colorPicker : Html Msg
 colorPicker =
-    [ div
-        [ onClick <| NewColor Red
-        , Html.Attributes.style
-            [ ( "background-color", "red" )
-            , ( "flex", "1 1 auto" )
-            ]
+    div
+        [ Html.Attributes.id "colorPickerRow"
         ]
-        [ Html.text "red" ]
-    , div
-        [ onClick <| NewColor Blue
-        , Html.Attributes.style
-            [ ( "background-color", "blue" )
-            , ( "flex", "1 1 auto" )
+        [ div
+            [ onClick <| NewColor Red
+            , Html.Attributes.style
+                [ ( "background-color", "red" )
+                , ( "flex", "1 1 auto" )
+                ]
             ]
+            [ Html.text "red" ]
+        , div
+            [ onClick <| NewColor Blue
+            , Html.Attributes.style
+                [ ( "background-color", "blue" )
+                , ( "flex", "1 1 auto" )
+                ]
+            ]
+            [ Html.text "blue" ]
         ]
-        [ Html.text "blue" ]
-    ]
-
-
-init : ( Model, Cmd Msg )
-init =
-    ( { text = "Init "
-      , mousePos = Position 0 0
-      , picture = []
-      , isDrawing = False
-      , color = Black
-      }
-    , Cmd.none
-    )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         NewColor Red ->
-            ( { model | text = "red", color = Red }, Cmd.none )
+            ( { model | text = "red", currentColor = Red }, Cmd.none )
 
         NewColor Blue ->
-            ( { model | text = "blue", color = Blue }, Cmd.none )
+            ( { model | text = "blue", currentColor = Blue }, Cmd.none )
 
         NewColor Black ->
-            ( { model | text = "black", color = Black }, Cmd.none )
+            ( { model | text = "black", currentColor = Black }, Cmd.none )
 
         MousePos pos ->
             case model.isDrawing of
                 True ->
                     let
                         pointsSoFar =
-                            model.picture
+                            model.picture.points
 
                         xPos =
                             toFloat pos.x
 
                         yPos =
                             toFloat pos.y
+
+                        picture =
+                            model.picture
+
+                        newPicture =
+                            { picture
+                                | points = ( xPos, yPos ) :: pointsSoFar
+                                , color = model.currentColor
+                            }
                     in
                         ( { model
                             | mousePos = pos
-                            , picture = ( xPos, yPos ) :: pointsSoFar
+                            , picture = newPicture
                           }
                         , Cmd.none
                         )
@@ -232,6 +255,9 @@ update msg model =
 
                 Down ->
                     ( { model | isDrawing = True }, Cmd.none )
+
+        ResetPanel ->
+            init
 
 
 subscriptions : Model -> Sub Msg
