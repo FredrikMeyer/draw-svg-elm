@@ -1,25 +1,31 @@
-module Main exposing (..)
+module Main exposing (Color(..), DrawPath, Model, MouseState(..), Msg(..), cHeight, cWidth, colorPicker, init, main, offsetPosition, pointToString, pointsToSvgLine, subscriptions, update, view)
 
-import Color exposing (..)
+import Browser exposing (document)
+import Browser.Events as Events
 import Html exposing (Html, div, text)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
-import Mouse exposing (Position)
-import Svg exposing (svg, rect, circle, polyline)
+import Json.Decode as Json exposing (..)
+import Svg exposing (circle, polyline, rect, svg)
 import Svg.Attributes exposing (..)
 import Tuple exposing (first, second)
-import DOM exposing (target, boundingClientRect)
 import VirtualDom exposing (..)
-import Json.Decode as Json exposing (..)
 
 
+main : Program Json.Value Model Msg
 main =
-    Html.program
-        { init = init
+    Browser.document
+        { init = always init
         , view = view
         , update = update
         , subscriptions = subscriptions
         }
+
+
+type alias Position =
+    { x : Int
+    , y : Int
+    }
 
 
 type alias Model =
@@ -82,12 +88,12 @@ pointToString : ( Float, Float ) -> String
 pointToString p =
     let
         x =
-            toString <| first p
+            String.fromFloat <| first p
 
         y =
-            toString <| second p
+            String.fromFloat <| second p
     in
-        x ++ "," ++ y
+    x ++ "," ++ y
 
 
 pointsToSvgLine : DrawPath -> Svg.Svg msg
@@ -108,15 +114,15 @@ pointsToSvgLine { color, points } =
                 Black ->
                     "black"
     in
-        polyline
-            [ fill "none"
-            , stroke polyColor
-            , Svg.Attributes.points x
-            ]
-            []
+    polyline
+        [ fill "none"
+        , stroke polyColor
+        , Svg.Attributes.points x
+        ]
+        []
 
 
-view : Model -> Html Msg
+view : Model -> Browser.Document Msg
 view model =
     let
         x =
@@ -126,51 +132,48 @@ view model =
             toFloat <| -model.mousePos.y + round (cHeight / 2)
 
         myViewBox =
-            viewBox <| "0 0 " ++ toString cWidth ++ " " ++ toString cHeight
+            viewBox <| "0 0 " ++ String.fromFloat cWidth ++ " " ++ String.fromFloat cHeight
 
         mouseX =
-            toString model.mousePos.x
+            String.fromInt model.mousePos.x
 
         mouseY =
-            toString model.mousePos.y
+            String.fromInt model.mousePos.y
 
         lineToDraw =
             pointsToSvgLine model.picture
     in
-        div []
-            [ div
-                []
-                [ Html.text (model.text ++ " " ++ toString model.isDrawing) ]
-            , div
-                [ Html.Attributes.style
-                    [ ( "border", "1px solid black" )
-                    ]
-                ]
-                [ svg
-                    [ myViewBox
-                    , Svg.Attributes.width <| toString cWidth ++ "px"
-                    , Svg.Attributes.height <| toString cHeight ++ "px"
-                    , Html.Attributes.style
-                        [ ( "border", "1px solid black" )
-                        ]
-                    , VirtualDom.on "mousemove" (Json.map MousePos offsetPosition)
-                    ]
-                    [ circle
-                        [ cx mouseX
-                        , cy mouseY
-                        , r "10"
-                        , fill "#0B79CE"
-                        ]
-                        []
-                    , lineToDraw
-                    ]
-                ]
-            , colorPicker
-            , Html.button
-                [ onClick ResetPanel
-                ]
-                [ Html.text "Clear drawing" ]
+    { title = "min elm app"
+    , body =
+        [ div
+            []
+            [ Html.text (model.text ++ " " ++ Debug.toString model.isDrawing) ]
+        , div
+            [ Html.Attributes.style "border" "1px solid black"
             ]
+            [ svg
+                [ myViewBox
+                , Svg.Attributes.width <| String.fromInt cWidth ++ "px"
+                , Svg.Attributes.height <| String.fromInt cHeight ++ "px"
+                , Html.Attributes.style "border" "1px solid black"
+                ]
+                [ circle
+                    [ cx mouseX
+                    , cy mouseY
+                    , r "10"
+                    , fill "#0B79CE"
+                    ]
+                    []
+                , lineToDraw
+                ]
+            ]
+        , colorPicker
+        , Html.button
+            [ onClick ResetPanel
+            ]
+            [ Html.text "Clear drawing" ]
+        ]
+    }
 
 
 offsetPosition : Json.Decoder Position
@@ -187,18 +190,14 @@ colorPicker =
         ]
         [ div
             [ onClick <| NewColor Red
-            , Html.Attributes.style
-                [ ( "background-color", "red" )
-                , ( "flex", "1 1 auto" )
-                ]
+            , Html.Attributes.style "background-color" "red"
+            , Html.Attributes.style "flex" "1 1 auto"
             ]
             [ Html.text "red" ]
         , div
             [ onClick <| NewColor Blue
-            , Html.Attributes.style
-                [ ( "background-color", "blue" )
-                , ( "flex", "1 1 auto" )
-                ]
+            , Html.Attributes.style "background-color" "blue"
+            , Html.Attributes.style "flex" "1 1 auto"
             ]
             [ Html.text "blue" ]
         ]
@@ -238,12 +237,12 @@ update msg model =
                                 , color = model.currentColor
                             }
                     in
-                        ( { model
-                            | mousePos = pos
-                            , picture = newPicture
-                          }
-                        , Cmd.none
-                        )
+                    ( { model
+                        | mousePos = pos
+                        , picture = newPicture
+                      }
+                    , Cmd.none
+                    )
 
                 False ->
                     ( model, Cmd.none )
@@ -263,6 +262,7 @@ update msg model =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ Mouse.downs (\x -> MouseClicked Down)
-        , Mouse.ups (\x -> MouseClicked Up)
+        [ Events.onMouseDown (Json.succeed <| MouseClicked Down)
+        , Events.onMouseUp (Json.succeed <| MouseClicked Up)
+        , Events.onMouseMove (Json.map MousePos offsetPosition)
         ]
