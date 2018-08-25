@@ -144,15 +144,14 @@ view model =
             []
             [ Html.text (model.text ++ " " ++ Debug.toString model.isDrawing) ]
         , div
-            [ Html.Attributes.style "border" "1px solid black"
+            [ Html.Attributes.style "border" "1px solid red"
             ]
             [ svg
                 [ myViewBox
                 , Svg.Attributes.width <| String.fromInt cWidth ++ "px"
                 , Svg.Attributes.height <| String.fromInt cHeight ++ "px"
                 , Html.Attributes.style "border" "1px solid black"
-
-                --VirtualDom.on "click" (VirtualDom.Normal Json.succeed)
+                , Html.Events.on "mousemove" (Json.map MousePos offsetPosition)
                 ]
                 [ circle
                     [ cx mouseX
@@ -255,7 +254,6 @@ subscriptions model =
     Sub.batch
         [ Events.onMouseDown (Json.succeed <| MouseClicked Down)
         , Events.onMouseUp (Json.succeed <| MouseClicked Up)
-        , Events.onMouseMove (Json.map MousePos offsetPosition)
         ]
 
 
