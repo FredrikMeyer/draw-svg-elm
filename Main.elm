@@ -1,7 +1,8 @@
-module Main exposing (Color(..), DrawPath, Model, MouseState(..), Msg(..), cHeight, cWidth, colorPicker, init, main, offsetPosition, pointToString, pointsToSvgLine, subscriptions, update, view)
+module Main exposing (Color(..), DrawPath, Model, MouseState(..), Msg(..), Position, colorPicker, init, main, offsetPosition, pointToString, pointsToSvgLine, subscriptions, update, view)
 
 import Browser exposing (document)
 import Browser.Events as Events
+import Config exposing (..)
 import Html exposing (Html, div, text)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
@@ -22,32 +23,25 @@ main =
         }
 
 
-type alias Position =
-    { x : Int
-    , y : Int
-    }
-
-
 type alias Model =
     { text : String
     , mousePos : Position
-    , picture : DrawPath
+    , picture : List DrawPath
+    , currentLine : DrawPath
     , currentColor : Color
     , isDrawing : Bool
     }
 
 
-cWidth =
-    500
-
-
-cHeight =
-    500
-
-
 type alias DrawPath =
     { color : Color
     , points : List ( Float, Float )
+    }
+
+
+type alias Position =
+    { x : Int
+    , y : Int
     }
 
 
@@ -73,7 +67,8 @@ init : ( Model, Cmd Msg )
 init =
     ( { text = "Init "
       , mousePos = Position 0 0
-      , picture =
+      , picture = []
+      , currentLine =
             { color = Black
             , points = []
             }
@@ -141,9 +136,9 @@ view model =
             String.fromInt model.mousePos.y
 
         lineToDraw =
-            pointsToSvgLine model.picture
+            pointsToSvgLine model.currentLine
     in
-    { title = "min elm app"
+    { title = "Tegn i vei"
     , body =
         [ div
             []
@@ -156,6 +151,8 @@ view model =
                 , Svg.Attributes.width <| String.fromInt cWidth ++ "px"
                 , Svg.Attributes.height <| String.fromInt cHeight ++ "px"
                 , Html.Attributes.style "border" "1px solid black"
+
+                --VirtualDom.on "click" (VirtualDom.Normal Json.succeed)
                 ]
                 [ circle
                     [ cx mouseX
@@ -176,28 +173,22 @@ view model =
     }
 
 
-offsetPosition : Json.Decoder Position
-offsetPosition =
-    map2 Position
-        (field "offsetX" int)
-        (field "offsetY" int)
-
-
 colorPicker : Html Msg
 colorPicker =
     div
-        [ Html.Attributes.id "colorPickerRow"
+        [ Html.Attributes.style "display" "flex"
+        , Html.Attributes.style "width" "100%"
         ]
         [ div
             [ onClick <| NewColor Red
             , Html.Attributes.style "background-color" "red"
-            , Html.Attributes.style "flex" "1 1 auto"
+            , Html.Attributes.style "flex-basis" "100%"
             ]
             [ Html.text "red" ]
         , div
             [ onClick <| NewColor Blue
             , Html.Attributes.style "background-color" "blue"
-            , Html.Attributes.style "flex" "1 1 auto"
+            , Html.Attributes.style "flex-basis" "100%"
             ]
             [ Html.text "blue" ]
         ]
@@ -220,7 +211,7 @@ update msg model =
                 True ->
                     let
                         pointsSoFar =
-                            model.picture.points
+                            model.currentLine.points
 
                         xPos =
                             toFloat pos.x
@@ -229,9 +220,9 @@ update msg model =
                             toFloat pos.y
 
                         picture =
-                            model.picture
+                            model.currentLine
 
-                        newPicture =
+                        newCurrentLine =
                             { picture
                                 | points = ( xPos, yPos ) :: pointsSoFar
                                 , color = model.currentColor
@@ -239,7 +230,7 @@ update msg model =
                     in
                     ( { model
                         | mousePos = pos
-                        , picture = newPicture
+                        , currentLine = newCurrentLine
                       }
                     , Cmd.none
                     )
@@ -266,3 +257,10 @@ subscriptions model =
         , Events.onMouseUp (Json.succeed <| MouseClicked Up)
         , Events.onMouseMove (Json.map MousePos offsetPosition)
         ]
+
+
+offsetPosition : Json.Decoder Position
+offsetPosition =
+    map2 Position
+        (field "offsetX" int)
+        (field "offsetY" int)
