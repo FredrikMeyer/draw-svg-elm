@@ -135,8 +135,8 @@ view model =
         mouseY =
             String.fromInt model.mousePos.y
 
-        lineToDraw =
-            pointsToSvgLine model.currentLine
+        linesToDraw =
+            List.map pointsToSvgLine (model.currentLine :: model.picture)
     in
     { title = "Tegn i vei"
     , body =
@@ -153,15 +153,15 @@ view model =
                 , Html.Attributes.style "border" "1px solid black"
                 , Html.Events.on "mousemove" (Json.map MousePos offsetPosition)
                 ]
-                [ circle
+                (circle
                     [ cx mouseX
                     , cy mouseY
                     , r "10"
                     , fill "#0B79CE"
                     ]
                     []
-                , lineToDraw
-                ]
+                    :: linesToDraw
+                )
             ]
         , colorPicker
         , Html.button
@@ -177,6 +177,7 @@ colorPicker =
     div
         [ Html.Attributes.style "display" "flex"
         , Html.Attributes.style "width" "100%"
+        , Html.Attributes.style "text-align" "center"
         ]
         [ div
             [ onClick <| NewColor Red
@@ -190,6 +191,14 @@ colorPicker =
             , Html.Attributes.style "flex-basis" "100%"
             ]
             [ Html.text "blue" ]
+        , div
+            [ onClick <| NewColor Black
+            , Html.Attributes.style "background-color" "black"
+            , Html.Attributes.style "color" "white"
+            , Html.Attributes.style "flex-basis" "100%"
+            ]
+            [ Html.text "blue"
+            ]
         ]
 
 
@@ -240,7 +249,20 @@ update msg model =
         MouseClicked state ->
             case state of
                 Up ->
-                    ( { model | isDrawing = False }, Cmd.none )
+                    let
+                        newPicture =
+                            model.currentLine :: model.picture
+                    in
+                    ( { model
+                        | isDrawing = False
+                        , picture = newPicture
+                        , currentLine =
+                            { color = model.currentColor
+                            , points = []
+                            }
+                      }
+                    , Cmd.none
+                    )
 
                 Down ->
                     ( { model | isDrawing = True }, Cmd.none )
