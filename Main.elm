@@ -155,7 +155,7 @@ view model =
                 ]
             , div
                 []
-                [ Html.text (model.text ++ " " ++ Debug.toString model.isDrawing) ]
+                [ Html.text model.text ]
             , div
                 [ Html.Attributes.style "border" "1px solid red"
                 ]
@@ -298,7 +298,7 @@ update msg model =
                 _ :: rest ->
                     ( { model
                         | picture = rest
-                        , text = Debug.toString (List.length model.picture) ++ model.text
+                        , text = model.text
                       }
                     , Cmd.none
                     )
