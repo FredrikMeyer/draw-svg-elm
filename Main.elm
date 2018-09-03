@@ -13,6 +13,10 @@ import Tuple exposing (first, second)
 import VirtualDom exposing (..)
 
 
+
+-- todo bezier
+
+
 main : Program Json.Value Model Msg
 main =
     Browser.document
@@ -50,6 +54,7 @@ type Msg
     | MousePos Position
     | MouseClicked MouseState
     | ResetPanel
+    | Undo
 
 
 type MouseState
@@ -141,33 +146,46 @@ view model =
     { title = "Tegn i vei"
     , body =
         [ div
-            []
-            [ Html.text (model.text ++ " " ++ Debug.toString model.isDrawing) ]
-        , div
-            [ Html.Attributes.style "border" "1px solid red"
+            [ Html.Attributes.style "width" <| String.fromInt cWidth ++ "px"
+            , Html.Attributes.style "margin" "auto"
+            , Html.Attributes.style "text-align" "center"
             ]
-            [ svg
-                [ myViewBox
-                , Svg.Attributes.width <| String.fromInt cWidth ++ "px"
-                , Svg.Attributes.height <| String.fromInt cHeight ++ "px"
-                , Html.Attributes.style "border" "1px solid black"
-                , Html.Events.on "mousemove" (Json.map MousePos offsetPosition)
+            [ div []
+                [ Html.h1 [] [ Html.text "SVG Drawer" ]
                 ]
-                (circle
-                    [ cx mouseX
-                    , cy mouseY
-                    , r "10"
-                    , fill "#0B79CE"
+            , div
+                []
+                [ Html.text (model.text ++ " " ++ Debug.toString model.isDrawing) ]
+            , div
+                [ Html.Attributes.style "border" "1px solid red"
+                ]
+                [ svg
+                    [ myViewBox
+                    , Svg.Attributes.width <| String.fromInt cWidth ++ "px"
+                    , Svg.Attributes.height <| String.fromInt cHeight ++ "px"
+                    , Html.Attributes.style "border" "1px solid black"
+                    , Html.Events.on "mousemove" (Json.map MousePos offsetPosition)
+                    , Html.Events.onMouseDown <| MouseClicked Down
+                    , Html.Events.onMouseUp <| MouseClicked Up
                     ]
-                    []
-                    :: linesToDraw
-                )
+                    (circle
+                        [ cx mouseX
+                        , cy mouseY
+                        , r "10"
+                        , fill "#0B79CE"
+                        ]
+                        []
+                        :: linesToDraw
+                    )
+                ]
+            , colorPicker
+            , Html.button
+                [ onClick ResetPanel ]
+                [ Html.text "Clear drawing" ]
+            , Html.button
+                [ onClick Undo ]
+                [ Html.text "Undo last line" ]
             ]
-        , colorPicker
-        , Html.button
-            [ onClick ResetPanel
-            ]
-            [ Html.text "Clear drawing" ]
         ]
     }
 
@@ -184,20 +202,21 @@ colorPicker =
             , Html.Attributes.style "background-color" "red"
             , Html.Attributes.style "flex-basis" "100%"
             ]
-            [ Html.text "red" ]
+            [ Html.text "Red" ]
         , div
             [ onClick <| NewColor Blue
             , Html.Attributes.style "background-color" "blue"
+            , Html.Attributes.style "color" "white"
             , Html.Attributes.style "flex-basis" "100%"
             ]
-            [ Html.text "blue" ]
+            [ Html.text "Blue" ]
         , div
             [ onClick <| NewColor Black
             , Html.Attributes.style "background-color" "black"
             , Html.Attributes.style "color" "white"
             , Html.Attributes.style "flex-basis" "100%"
             ]
-            [ Html.text "blue"
+            [ Html.text "Black"
             ]
         ]
 
@@ -244,7 +263,11 @@ update msg model =
                     )
 
                 False ->
-                    ( model, Cmd.none )
+                    ( { model
+                        | mousePos = pos
+                      }
+                    , Cmd.none
+                    )
 
         MouseClicked state ->
             case state of
@@ -270,13 +293,24 @@ update msg model =
         ResetPanel ->
             init
 
+        Undo ->
+            case model.picture of
+                _ :: rest ->
+                    ( { model
+                        | picture = rest
+                        , text = Debug.toString (List.length model.picture) ++ model.text
+                      }
+                    , Cmd.none
+                    )
+
+                [] ->
+                    ( { model | picture = [] }, Cmd.none )
+
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ Events.onMouseDown (Json.succeed <| MouseClicked Down)
-        , Events.onMouseUp (Json.succeed <| MouseClicked Up)
-        ]
+        []
 
 
 offsetPosition : Json.Decoder Position
