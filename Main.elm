@@ -34,12 +34,31 @@ type alias Model =
     , currentLine : DrawPath
     , currentColor : Color
     , isDrawing : Bool
+    , drawingMode : Mode
     }
+
+
+type Mode
+    = FreeDraw
+    | CircleMode
+
+
+type DrawingElement
+    = Line DrawPath
+    | DrawingFigure Circle
 
 
 type alias DrawPath =
     { color : Color
     , points : List ( Float, Float )
+    }
+
+
+type alias Circle =
+    { color : Color
+    , x : Int
+    , y : Int
+    , r : Int
     }
 
 
@@ -53,6 +72,8 @@ type Msg
     = NewColor Color
     | MousePos Position
     | MouseClicked MouseState
+    | ChooseCircle
+    | ChooseFreeDraw
     | ResetPanel
     | Undo
 
@@ -79,6 +100,7 @@ init =
             }
       , isDrawing = False
       , currentColor = Black
+      , drawingMode = FreeDraw
       }
     , Cmd.none
     )
@@ -146,48 +168,72 @@ view model =
     { title = "Tegn i vei"
     , body =
         [ div
-            [ Html.Attributes.style "width" <| String.fromInt cWidth ++ "px"
-            , Html.Attributes.style "margin" "auto"
+            [ Html.Attributes.style "margin" "auto"
             , Html.Attributes.style "text-align" "center"
             ]
-            [ div []
-                [ Html.h1 [] [ Html.text "SVG Drawer" ]
+            [ div
+                [ --Html.Attributes.style "width" <| String.fromInt cWidth ++ "px"
+                  Html.Attributes.style "display" "inline-block"
                 ]
-            , div
-                []
-                [ Html.text model.text ]
-            , div
-                [ Html.Attributes.style "border" "1px solid red"
-                ]
-                [ svg
-                    [ myViewBox
-                    , Svg.Attributes.width <| String.fromInt cWidth ++ "px"
-                    , Svg.Attributes.height <| String.fromInt cHeight ++ "px"
-                    , Html.Attributes.style "border" "1px solid black"
-                    , Html.Events.on "mousemove" (Json.map MousePos offsetPosition)
-                    , Html.Events.onMouseDown <| MouseClicked Down
-                    , Html.Events.onMouseUp <| MouseClicked Up
+                [ div []
+                    [ Html.h1 [] [ Html.text "SVG Drawer" ]
                     ]
-                    (circle
-                        [ cx mouseX
-                        , cy mouseY
-                        , r "10"
-                        , fill "#0B79CE"
+                , div
+                    []
+                    [ Html.text model.text ]
+                , div
+                    [ Html.Attributes.style "border" "1px solid red"
+                    , Html.Attributes.style "display" "flex"
+                    ]
+                    [ div []
+                        [ div
+                            [ onClick ChooseCircle
+                            , Html.Attributes.style "font-size" "40px"
+                            ]
+                            [ Html.text "O"
+                            ]
+                        , div
+                            [ onClick ChooseFreeDraw
+                            , Html.Attributes.style "font-size" "40px"
+                            ]
+                            [ Html.text "/"
+                            ]
                         ]
-                        []
-                        :: linesToDraw
-                    )
+                    , drawingBox myViewBox mouseX mouseY linesToDraw
+                    ]
+                , colorPicker
+                , Html.button
+                    [ onClick ResetPanel ]
+                    [ Html.text "Clear drawing" ]
+                , Html.button
+                    [ onClick Undo ]
+                    [ Html.text "Undo last line" ]
                 ]
-            , colorPicker
-            , Html.button
-                [ onClick ResetPanel ]
-                [ Html.text "Clear drawing" ]
-            , Html.button
-                [ onClick Undo ]
-                [ Html.text "Undo last line" ]
             ]
         ]
     }
+
+
+drawingBox : Svg.Attribute Msg -> String -> String -> List (Svg.Svg Msg) -> Svg.Svg Msg
+drawingBox myViewBox mouseX mouseY linesToDraw =
+    svg
+        [ myViewBox
+        , Svg.Attributes.width <| String.fromInt cWidth ++ "px"
+        , Svg.Attributes.height <| String.fromInt cHeight ++ "px"
+        , Html.Attributes.style "border" "1px solid black"
+        , Html.Events.on "mousemove" (Json.map MousePos offsetPosition)
+        , Html.Events.onMouseDown <| MouseClicked Down
+        , Html.Events.onMouseUp <| MouseClicked Up
+        ]
+        (circle
+            [ cx mouseX
+            , cy mouseY
+            , r "10"
+            , fill "#0B79CE"
+            ]
+            []
+            :: linesToDraw
+        )
 
 
 colorPicker : Html Msg
@@ -289,6 +335,22 @@ update msg model =
 
                 Down ->
                     ( { model | isDrawing = True }, Cmd.none )
+
+        ChooseCircle ->
+            ( { model
+                | text = "circlemode"
+                , drawingMode = CircleMode
+              }
+            , Cmd.none
+            )
+
+        ChooseFreeDraw ->
+            ( { model
+                | text = "freedraw lemode"
+                , drawingMode = FreeDraw
+              }
+            , Cmd.none
+            )
 
         ResetPanel ->
             init
