@@ -1,6 +1,15 @@
 module View exposing (view)
 
-import Drawing exposing (Model)
+import Browser exposing (document)
+import Config exposing (..)
+import Drawing exposing (pointsToSvgLine)
+import Html exposing (Html, div, text)
+import Html.Attributes exposing (..)
+import Html.Events exposing (onClick)
+import Json.Decode as Json exposing (..)
+import Model exposing (..)
+import Svg exposing (circle, polyline, rect, svg)
+import Svg.Attributes exposing (..)
 
 
 view : Model -> Browser.Document Msg
@@ -35,7 +44,7 @@ view model =
                   Html.Attributes.style "display" "inline-block"
                 ]
                 [ div []
-                    [ Html.h1 [] [ Html.text "SVG Drawer" ]
+                    [ Html.h1 [] [ Html.text "SVG Drawer!" ]
                     ]
                 , div
                     []
@@ -71,3 +80,63 @@ view model =
             ]
         ]
     }
+
+
+drawingBox : Svg.Attribute Msg -> String -> String -> List (Svg.Svg Msg) -> Svg.Svg Msg
+drawingBox myViewBox mouseX mouseY linesToDraw =
+    svg
+        [ myViewBox
+        , Svg.Attributes.width <| String.fromInt cWidth ++ "px"
+        , Svg.Attributes.height <| String.fromInt cHeight ++ "px"
+        , Html.Attributes.style "border" "1px solid black"
+        , Html.Events.on "mousemove" (Json.map MousePos offsetPosition)
+        , Html.Events.onMouseDown <| MouseClicked Down
+        , Html.Events.onMouseUp <| MouseClicked Up
+        ]
+        (circle
+            [ cx mouseX
+            , cy mouseY
+            , r "10"
+            , fill "#0B79CE"
+            ]
+            []
+            :: linesToDraw
+        )
+
+
+colorPicker : Html Msg
+colorPicker =
+    div
+        [ Html.Attributes.style "display" "flex"
+        , Html.Attributes.style "width" "100%"
+        , Html.Attributes.style "text-align" "center"
+        ]
+        [ div
+            [ onClick <| NewColor Red
+            , Html.Attributes.style "background-color" "red"
+            , Html.Attributes.style "flex-basis" "100%"
+            ]
+            [ Html.text "Red" ]
+        , div
+            [ onClick <| NewColor Blue
+            , Html.Attributes.style "background-color" "blue"
+            , Html.Attributes.style "color" "white"
+            , Html.Attributes.style "flex-basis" "100%"
+            ]
+            [ Html.text "Blue" ]
+        , div
+            [ onClick <| NewColor Black
+            , Html.Attributes.style "background-color" "black"
+            , Html.Attributes.style "color" "white"
+            , Html.Attributes.style "flex-basis" "100%"
+            ]
+            [ Html.text "Black"
+            ]
+        ]
+
+
+offsetPosition : Json.Decoder Position
+offsetPosition =
+    map2 Position
+        (field "offsetX" int)
+        (field "offsetY" int)

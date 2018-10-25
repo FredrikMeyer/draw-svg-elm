@@ -1,8 +1,10 @@
 module Main exposing (main)
 
 import Browser exposing (document)
-import Drawing exposing (..)
+import Drawing exposing (update)
 import Json.Decode as Json exposing (Value)
+import Model exposing (Model, Msg, init)
+import View exposing (view)
 
 
 
