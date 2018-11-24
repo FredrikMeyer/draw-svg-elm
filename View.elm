@@ -2,7 +2,7 @@ module View exposing (view)
 
 import Browser exposing (document)
 import Config exposing (..)
-import Drawing exposing (pointsToSvgLine)
+import Drawing exposing (modelToSvg)
 import Html exposing (Html, div, text)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
@@ -10,6 +10,16 @@ import Json.Decode as Json exposing (..)
 import Model exposing (..)
 import Svg exposing (circle, polyline, rect, svg)
 import Svg.Attributes exposing (..)
+
+
+toPicture : Mode -> List DrawingElement -> List DrawingElement
+toPicture mode list =
+    case mode of
+        FreeDraw m ->
+            FreeHandElement m.currentLine :: list
+
+        CircleMode _ ->
+            list
 
 
 view : Model -> Browser.Document Msg
@@ -31,7 +41,7 @@ view model =
             String.fromInt model.mousePos.y
 
         linesToDraw =
-            List.map pointsToSvgLine (model.currentLine :: model.picture)
+            List.map modelToSvg <| toPicture model.drawingMode model.picture
     in
     { title = "Tegn i vei"
     , body =
@@ -54,19 +64,7 @@ view model =
                     , Html.Attributes.style "display" "flex"
                     ]
                     [ div []
-                        [ div
-                            [ onClick ChooseCircle
-                            , Html.Attributes.style "font-size" "40px"
-                            ]
-                            [ Html.text "O"
-                            ]
-                        , div
-                            [ onClick ChooseFreeDraw
-                            , Html.Attributes.style "font-size" "40px"
-                            ]
-                            [ Html.text "/"
-                            ]
-                        ]
+                        menuItems
                     , drawingBox myViewBox mouseX mouseY linesToDraw
                     ]
                 , colorPicker
@@ -80,6 +78,22 @@ view model =
             ]
         ]
     }
+
+
+menuItems =
+    [ div
+        [ onClick ChooseCircle
+        , Html.Attributes.style "font-size" "40px"
+        ]
+        [ Html.text "O"
+        ]
+    , div
+        [ onClick ChooseFreeDraw
+        , Html.Attributes.style "font-size" "40px"
+        ]
+        [ Html.text "/"
+        ]
+    ]
 
 
 drawingBox : Svg.Attribute Msg -> String -> String -> List (Svg.Svg Msg) -> Svg.Svg Msg

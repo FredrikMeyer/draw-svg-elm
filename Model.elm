@@ -6,13 +6,15 @@ init =
     ( { text = "Init "
       , mousePos = Position 0 0
       , picture = []
-      , currentLine =
-            { color = Black
-            , points = []
-            }
-      , isDrawing = False
       , currentColor = Black
-      , drawingMode = FreeDraw
+      , drawingMode =
+            FreeDraw
+                { currentLine =
+                    { color = Black
+                    , points = []
+                    }
+                , isDrawing = False
+                }
       }
     , Cmd.none
     )
@@ -21,22 +23,25 @@ init =
 type alias Model =
     { text : String
     , mousePos : Position
-    , picture : List DrawPath
-    , currentLine : DrawPath
+    , picture : List DrawingElement
     , currentColor : Color
-    , isDrawing : Bool
     , drawingMode : Mode
     }
 
 
 type Mode
     = FreeDraw
+        { currentLine : DrawPath
+        , isDrawing : Bool
+        }
     | CircleMode
+        { center : Maybe ( Float, Float )
+        }
 
 
 type DrawingElement
-    = List DrawPath
-    | Element Circle
+    = FreeHandElement DrawPath
+    | CircleElement Circle
 
 
 type alias DrawPath =
@@ -47,9 +52,9 @@ type alias DrawPath =
 
 type alias Circle =
     { color : Color
-    , x : Int
-    , y : Int
-    , r : Int
+    , x : Float
+    , y : Float
+    , r : Float
     }
 
 

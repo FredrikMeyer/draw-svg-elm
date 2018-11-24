@@ -1,4 +1,4 @@
-module Drawing exposing (init, pointsToSvgLine, update)
+module Drawing exposing (modelToSvg, update)
 
 import Browser.Events as Events
 import Config exposing (..)
@@ -22,23 +22,45 @@ pointToString p =
     x ++ "," ++ y
 
 
-pointsToSvgLine : DrawPath -> Svg.Svg msg
-pointsToSvgLine { color, points } =
+modelToSvg : DrawingElement -> Svg.Svg msg
+modelToSvg element =
+    case element of
+        FreeHandElement drawPath ->
+            freeHandToSvg drawPath
+
+        CircleElement c ->
+            let
+                x =
+                    String.fromFloat c.x ++ "px"
+
+                y =
+                    String.fromFloat c.y ++ "px"
+
+                r =
+                    String.fromFloat c.r ++ "px"
+
+                color =
+                    colorToString c.color
+            in
+            circle
+                [ fill "none"
+                , stroke color
+                , Svg.Attributes.cx x
+                , Svg.Attributes.cy y
+                , Svg.Attributes.r r
+                ]
+                []
+
+
+freeHandToSvg : DrawPath -> Svg.Svg msg
+freeHandToSvg { color, points } =
     let
         x =
             List.map pointToString points
                 |> String.join " "
 
         polyColor =
-            case color of
-                Red ->
-                    "red"
-
-                Blue ->
-                    "blue"
-
-                Black ->
-                    "black"
+            colorToString color
     in
     polyline
         [ fill "none"
@@ -46,6 +68,37 @@ pointsToSvgLine { color, points } =
         , Svg.Attributes.points x
         ]
         []
+
+
+colorToString : Color -> String
+colorToString color =
+    case color of
+        Red ->
+            "red"
+
+        Blue ->
+            "blue"
+
+        Black ->
+            "black"
+
+
+distance : ( Float, Float ) -> ( Float, Float ) -> Float
+distance x y =
+    let
+        xx =
+            first x
+
+        xy =
+            second x
+
+        yy =
+            second y
+
+        yx =
+            first y
+    in
+    sqrt <| (xx - yx) ^ 2 + (xy - yy) ^ 2
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -61,74 +114,148 @@ update msg model =
             ( { model | text = "black", currentColor = Black }, Cmd.none )
 
         MousePos pos ->
-            case model.isDrawing of
-                True ->
-                    let
-                        pointsSoFar =
-                            model.currentLine.points
+            case model.drawingMode of
+                FreeDraw { currentLine, isDrawing } ->
+                    case isDrawing of
+                        True ->
+                            let
+                                pointsSoFar =
+                                    currentLine.points
 
-                        xPos =
-                            toFloat pos.x
+                                xPos =
+                                    toFloat pos.x
 
-                        yPos =
-                            toFloat pos.y
+                                yPos =
+                                    toFloat pos.y
 
-                        picture =
-                            model.currentLine
+                                picture =
+                                    currentLine
 
-                        newCurrentLine =
-                            { picture
-                                | points = ( xPos, yPos ) :: pointsSoFar
-                                , color = model.currentColor
-                            }
-                    in
-                    ( { model
-                        | mousePos = pos
-                        , currentLine = newCurrentLine
-                      }
-                    , Cmd.none
-                    )
+                                newCurrentLine =
+                                    { picture
+                                        | points = ( xPos, yPos ) :: pointsSoFar
+                                        , color = model.currentColor
+                                    }
 
-                False ->
-                    ( { model
-                        | mousePos = pos
-                      }
+                                updatedFreeDraw =
+                                    FreeDraw
+                                        { currentLine = newCurrentLine
+                                        , isDrawing = isDrawing
+                                        }
+                            in
+                            ( { model
+                                | mousePos = pos
+                                , drawingMode = updatedFreeDraw
+                              }
+                            , Cmd.none
+                            )
+
+                        False ->
+                            ( { model
+                                | mousePos = pos
+                              }
+                            , Cmd.none
+                            )
+
+                CircleMode _ ->
+                    ( { model | mousePos = pos }
                     , Cmd.none
                     )
 
         MouseClicked state ->
-            case state of
-                Up ->
-                    let
-                        newPicture =
-                            model.currentLine :: model.picture
-                    in
-                    ( { model
-                        | isDrawing = False
-                        , picture = newPicture
-                        , currentLine =
-                            { color = model.currentColor
-                            , points = []
-                            }
-                      }
-                    , Cmd.none
-                    )
+            case model.drawingMode of
+                FreeDraw { currentLine, isDrawing } ->
+                    case state of
+                        Up ->
+                            let
+                                newPicture =
+                                    FreeHandElement currentLine :: model.picture
+                            in
+                            ( { model
+                                | picture = newPicture
+                                , drawingMode =
+                                    FreeDraw
+                                        { currentLine =
+                                            { color = model.currentColor
+                                            , points = []
+                                            }
+                                        , isDrawing = False
+                                        }
+                              }
+                            , Cmd.none
+                            )
 
-                Down ->
-                    ( { model | isDrawing = True }, Cmd.none )
+                        Down ->
+                            let
+                                newMode =
+                                    FreeDraw
+                                        { currentLine = currentLine
+                                        , isDrawing = True
+                                        }
+                            in
+                            ( { model | drawingMode = newMode }, Cmd.none )
+
+                CircleMode c ->
+                    case state of
+                        Up ->
+                            let
+                                x =
+                                    toFloat model.mousePos.x
+
+                                y =
+                                    toFloat model.mousePos.y
+
+                                center =
+                                    Maybe.withDefault ( 0, 0 ) c.center
+
+                                radius =
+                                    distance ( x, y ) center
+
+                                newPicture =
+                                    CircleElement
+                                        { color = model.currentColor
+                                        , x = x
+                                        , y = y
+                                        , r = radius
+                                        }
+                                        :: model.picture
+                            in
+                            ( { model | picture = newPicture }, Cmd.none )
+
+                        Down ->
+                            let
+                                mouseX =
+                                    toFloat model.mousePos.x
+
+                                mouseY =
+                                    toFloat model.mousePos.y
+
+                                newMode =
+                                    CircleMode
+                                        { center = Just ( mouseX, mouseY )
+                                        }
+                            in
+                            ( { model | drawingMode = newMode }, Cmd.none )
 
         ChooseCircle ->
             ( { model
-                | text = "circlemode"
-                , drawingMode = CircleMode
+                | text = "circle mode"
+                , drawingMode = CircleMode { center = Nothing }
               }
             , Cmd.none
             )
 
         ChooseFreeDraw ->
             ( { model
-                | text = "freedraw lemode"
-                , drawingMode = FreeDraw
+                | text = "freedraw"
+                , drawingMode =
+                    FreeDraw
+                        { currentLine =
+                            { color = model.currentColor
+                            , points = []
+                            }
+                        , isDrawing = False
+                        }
               }
             , Cmd.none
             )
