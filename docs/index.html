@@ -780,11 +780,11 @@ function _Debug_crash_UNUSED(identifier, fact1, fact2, fact3, fact4)
 
 function _Debug_regionToString(region)
 {
-	if (region.V.I === region._.I)
+	if (region.V.J === region._.J)
 	{
-		return 'on line ' + region.V.I;
+		return 'on line ' + region.V.J;
 	}
-	return 'on lines ' + region.V.I + ' through ' + region._.I;
+	return 'on lines ' + region.V.J + ' through ' + region._.J;
 }
 
 
@@ -3913,7 +3913,7 @@ var _Browser_document = _Debugger_document || F4(function(impl, flagDecoder, deb
 		impl.aL,
 		impl.aJ,
 		function(sendToApp, initialModel) {
-			var divertHrefToApp = impl.K && impl.K(sendToApp)
+			var divertHrefToApp = impl.L && impl.L(sendToApp)
 			var view = impl.aN;
 			var title = _VirtualDom_doc.title;
 			var bodyNode = _VirtualDom_doc.body;
@@ -3983,7 +3983,7 @@ function _Browser_application(impl)
 	var key = function() { key.a(onUrlChange(_Browser_getUrl())); };
 
 	return _Browser_document({
-		K: function(sendToApp)
+		L: function(sendToApp)
 		{
 			key.a = sendToApp;
 			_Browser_window.addEventListener('popstate', key);
@@ -4081,17 +4081,17 @@ var _Browser_decodeEvent = F2(function(decoder, event)
 function _Browser_visibilityInfo()
 {
 	return (typeof _VirtualDom_doc.hidden !== 'undefined')
-		? { aB: 'hidden', H: 'visibilitychange' }
+		? { aB: 'hidden', I: 'visibilitychange' }
 		:
 	(typeof _VirtualDom_doc.mozHidden !== 'undefined')
-		? { aB: 'mozHidden', H: 'mozvisibilitychange' }
+		? { aB: 'mozHidden', I: 'mozvisibilitychange' }
 		:
 	(typeof _VirtualDom_doc.msHidden !== 'undefined')
-		? { aB: 'msHidden', H: 'msvisibilitychange' }
+		? { aB: 'msHidden', I: 'msvisibilitychange' }
 		:
 	(typeof _VirtualDom_doc.webkitHidden !== 'undefined')
-		? { aB: 'webkitHidden', H: 'webkitvisibilitychange' }
-		: { aB: 'hidden', H: 'visibilitychange' };
+		? { aB: 'webkitHidden', I: 'webkitvisibilitychange' }
+		: { aB: 'hidden', I: 'visibilitychange' };
 }
 
 
@@ -4174,8 +4174,8 @@ function _Browser_getViewport()
 	return {
 		aq: _Browser_getScene(),
 		at: {
-			P: _Browser_window.pageXOffset,
-			Q: _Browser_window.pageYOffset,
+			Q: _Browser_window.pageXOffset,
+			R: _Browser_window.pageYOffset,
 			F: _Browser_doc.documentElement.clientWidth,
 			z: _Browser_doc.documentElement.clientHeight
 		}
@@ -4216,8 +4216,8 @@ function _Browser_getViewportOf(id)
 				z: node.scrollHeight
 			},
 			at: {
-				P: node.scrollLeft,
-				Q: node.scrollTop,
+				Q: node.scrollLeft,
+				R: node.scrollTop,
 				F: node.clientWidth,
 				z: node.clientHeight
 			}
@@ -4251,14 +4251,14 @@ function _Browser_getElement(id)
 		return {
 			aq: _Browser_getScene(),
 			at: {
-				P: x,
-				Q: y,
+				Q: x,
+				R: y,
 				F: _Browser_doc.documentElement.clientWidth,
 				z: _Browser_doc.documentElement.clientHeight
 			},
 			ay: {
-				P: x + rect.left,
-				Q: y + rect.top,
+				Q: x + rect.left,
+				R: y + rect.top,
 				F: rect.width,
 				z: rect.height
 			}
@@ -4417,7 +4417,7 @@ var author$project$Model$FreeHandElement = function (a) {
 var author$project$Model$Red = 1;
 var author$project$Model$Position = F2(
 	function (x, y) {
-		return {P: x, Q: y};
+		return {Q: x, R: y};
 	});
 var elm$core$Basics$False = 1;
 var elm$core$Basics$True = 0;
@@ -4811,7 +4811,7 @@ var author$project$Model$init = _Utils_Tuple2(
 		o: 0,
 		k: author$project$Model$FreeDraw(
 			{
-				x: {w: 0, J: _List_Nil},
+				x: {w: 0, K: _List_Nil},
 				A: false
 			}),
 		r: A2(author$project$Model$Position, 0, 0),
@@ -4819,6 +4819,16 @@ var author$project$Model$init = _Utils_Tuple2(
 		u: 'Init '
 	},
 	elm$core$Platform$Cmd$none);
+var elm$core$Maybe$map = F2(
+	function (f, maybe) {
+		if (!maybe.$) {
+			var value = maybe.a;
+			return elm$core$Maybe$Just(
+				f(value));
+		} else {
+			return elm$core$Maybe$Nothing;
+		}
+	});
 var elm$core$Maybe$withDefault = F2(
 	function (_default, maybe) {
 		if (!maybe.$) {
@@ -4862,15 +4872,15 @@ var author$project$Drawing$update = F2(
 					var currentLine = _n4.a.x;
 					var isDrawing = _n4.a.A;
 					if (isDrawing) {
-						var yPos = pos.Q;
-						var xPos = pos.P;
-						var pointsSoFar = currentLine.J;
+						var yPos = pos.R;
+						var xPos = pos.Q;
+						var pointsSoFar = currentLine.K;
 						var picture = currentLine;
 						var newCurrentLine = _Utils_update(
 							picture,
 							{
 								w: model.o,
-								J: A2(
+								K: A2(
 									elm$core$List$cons,
 									_Utils_Tuple2(xPos, yPos),
 									pointsSoFar)
@@ -4913,7 +4923,7 @@ var author$project$Drawing$update = F2(
 								{
 									k: author$project$Model$FreeDraw(
 										{
-											x: {w: model.o, J: _List_Nil},
+											x: {w: model.o, K: _List_Nil},
 											A: false
 										}),
 									t: newPicture
@@ -4931,12 +4941,12 @@ var author$project$Drawing$update = F2(
 				} else {
 					var c = _n6.a;
 					if (!state) {
-						var y = model.r.Q;
-						var x = model.r.P;
+						var y = model.r.R;
+						var x = model.r.Q;
 						var center = A2(
 							elm$core$Maybe$withDefault,
 							_Utils_Tuple2(0, 0),
-							c.R);
+							c.H);
 						var radius = A2(
 							author$project$Drawing$distance,
 							_Utils_Tuple2(x, y),
@@ -4944,7 +4954,18 @@ var author$project$Drawing$update = F2(
 						var newPicture = A2(
 							elm$core$List$cons,
 							author$project$Model$CircleElement(
-								{w: model.o, an: radius, P: x, Q: y}),
+								{
+									w: model.o,
+									an: radius,
+									Q: A2(
+										elm$core$Maybe$withDefault,
+										0,
+										A2(elm$core$Maybe$map, elm$core$Tuple$first, c.H)),
+									R: A2(
+										elm$core$Maybe$withDefault,
+										0,
+										A2(elm$core$Maybe$map, elm$core$Tuple$second, c.H))
+								}),
 							model.t);
 						return _Utils_Tuple2(
 							_Utils_update(
@@ -4952,11 +4973,11 @@ var author$project$Drawing$update = F2(
 								{t: newPicture}),
 							elm$core$Platform$Cmd$none);
 					} else {
-						var mouseY = model.r.Q;
-						var mouseX = model.r.P;
+						var mouseY = model.r.R;
+						var mouseX = model.r.Q;
 						var newMode = author$project$Model$CircleMode(
 							{
-								R: elm$core$Maybe$Just(
+								H: elm$core$Maybe$Just(
 									_Utils_Tuple2(mouseX, mouseY))
 							});
 						return _Utils_Tuple2(
@@ -4972,7 +4993,7 @@ var author$project$Drawing$update = F2(
 						model,
 						{
 							k: author$project$Model$CircleMode(
-								{R: elm$core$Maybe$Nothing}),
+								{H: elm$core$Maybe$Nothing}),
 							u: 'circle mode'
 						}),
 					elm$core$Platform$Cmd$none);
@@ -4983,7 +5004,7 @@ var author$project$Drawing$update = F2(
 						{
 							k: author$project$Model$FreeDraw(
 								{
-									x: {w: model.o, J: _List_Nil},
+									x: {w: model.o, K: _List_Nil},
 									A: false
 								}),
 							u: 'freedraw'
@@ -5125,7 +5146,7 @@ var elm$svg$Svg$Attributes$points = _VirtualDom_attribute('points');
 var elm$svg$Svg$Attributes$stroke = _VirtualDom_attribute('stroke');
 var author$project$Drawing$freeHandToSvg = function (_n0) {
 	var color = _n0.w;
-	var points = _n0.J;
+	var points = _n0.K;
 	var x = A2(
 		elm$core$String$join,
 		' ',
@@ -5151,8 +5172,8 @@ var author$project$Drawing$modelToSvg = function (element) {
 		return author$project$Drawing$freeHandToSvg(drawPath);
 	} else {
 		var c = element.a;
-		var y = elm$core$String$fromFloat(c.Q) + 'px';
-		var x = elm$core$String$fromFloat(c.P) + 'px';
+		var y = elm$core$String$fromFloat(c.R) + 'px';
+		var x = elm$core$String$fromFloat(c.Q) + 'px';
 		var r = elm$core$String$fromFloat(c.an) + 'px';
 		var color = author$project$Drawing$colorToString(c.w);
 		return A2(
@@ -5359,12 +5380,12 @@ var elm$html$Html$button = _VirtualDom_node('button');
 var elm$html$Html$h1 = _VirtualDom_node('h1');
 var elm$svg$Svg$Attributes$viewBox = _VirtualDom_attribute('viewBox');
 var author$project$View$view = function (model) {
-	var y = (-model.r.Q) + elm$core$Basics$round(author$project$Config$cHeight / 2);
-	var x = model.r.P - elm$core$Basics$round(author$project$Config$cWidth / 2);
+	var y = (-model.r.R) + elm$core$Basics$round(author$project$Config$cHeight / 2);
+	var x = model.r.Q - elm$core$Basics$round(author$project$Config$cWidth / 2);
 	var myViewBox = elm$svg$Svg$Attributes$viewBox(
 		'0 0 ' + (elm$core$String$fromFloat(author$project$Config$cWidth) + (' ' + elm$core$String$fromFloat(author$project$Config$cHeight))));
-	var mouseY = elm$core$String$fromInt(model.r.Q);
-	var mouseX = elm$core$String$fromInt(model.r.P);
+	var mouseY = elm$core$String$fromInt(model.r.R);
+	var mouseX = elm$core$String$fromInt(model.r.Q);
 	var linesToDraw = A2(
 		elm$core$List$map,
 		author$project$Drawing$modelToSvg,
