@@ -214,8 +214,8 @@ update msg model =
                                 newPicture =
                                     CircleElement
                                         { color = model.currentColor
-                                        , x = x
-                                        , y = y
+                                        , x = c.center |> Maybe.map first |> Maybe.withDefault 0
+                                        , y = c.center |> Maybe.map second |> Maybe.withDefault 0
                                         , r = radius
                                         }
                                         :: model.picture
